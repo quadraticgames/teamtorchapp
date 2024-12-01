@@ -56,7 +56,7 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
 
   const checkHandbookStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/handbook-status');
+      const response = await axios.get('/.netlify/functions/handbook-status');
       setHandbookStatus(response.data);
     } catch (error) {
       console.error('Error checking handbook status:', error);
@@ -80,7 +80,7 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/query', {
+      const response = await axios.post('/.netlify/functions/query', {
         question: userMessage.text
       });
 
@@ -112,7 +112,7 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/upload-handbook', formData, {
+      const response = await axios.post('/.netlify/functions/upload-handbook', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

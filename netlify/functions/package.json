@@ -1,0 +1,9 @@
+{
+  "name": "employee-handbook-app-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for Employee Handbook App",
+  "main": "query.js",
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}
