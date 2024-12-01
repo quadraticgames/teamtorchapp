@@ -30,7 +30,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "netlify:build": "npm run build && netlify-lambda build netlify/functions"
+  },
+  "devDependencies": {
+    "netlify-lambda": "^2.0.15"
   },
   "eslintConfig": {
     "extends": [

@@ -46,13 +46,33 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Error processing query:', error);
+    
+    // Handle rate limit errors specifically
+    if (error.error?.type === 'rate_limit_exceeded' || error.message?.includes('rate limit')) {
+      return {
+        statusCode: 429,
+        headers: {
+          'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Retry-After': '3600' // Suggest retry after 1 hour
+        },
+        body: JSON.stringify({
+          error: 'Rate limit exceeded. Please try again in about an hour.',
+          details: 'Our AI assistant is currently experiencing high demand. Please wait a while before asking another question.'
+        })
+      };
+    }
+
     return {
       statusCode: 500,
       headers: {
         'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
-      body: JSON.stringify({ error: 'Error processing query: ' + error.message })
+      body: JSON.stringify({
+        error: 'An error occurred while processing your request.',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Please try again later.'
+      })
     };
   }
 };

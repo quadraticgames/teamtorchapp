@@ -1,12 +1,11 @@
 const { OpenAI } = require('openai');
 const pdfParse = require('pdf-parse');
+const fs = require('fs');
+const path = require('path');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-
-let handbookContent = '';
-let handbookSections = [];
 
 function splitIntoSections(text) {
   const sections = [];
@@ -14,8 +13,16 @@ function splitIntoSections(text) {
   
   const lines = text.split('\n');
   for (let line of lines) {
-    // Your existing section splitting logic here
-    currentSection.content += line + '\n';
+    // Basic section splitting logic
+    if (line.trim().toUpperCase() === line.trim() && line.trim().length > 0) {
+      // Potential section title
+      if (currentSection.content) {
+        sections.push(currentSection);
+      }
+      currentSection = { title: line.trim(), content: '' };
+    } else {
+      currentSection.content += line + '\n';
+    }
   }
   
   if (currentSection.content) {
@@ -38,15 +45,24 @@ exports.handler = async (event, context) => {
     const data = JSON.parse(event.body);
     const fileData = Buffer.from(data.file, 'base64');
     
-    if (data.mimeType === 'application/pdf') {
-      const pdfData = await pdfParse(fileData);
-      handbookContent = pdfData.text;
-    } else {
-      handbookContent = fileData.toString();
+    // Save the file to public directory
+    const publicDir = path.join(process.cwd(), 'public');
+    const handbookPath = path.join(publicDir, 'handbook.pdf');
+    
+    // Ensure public directory exists
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
     }
+    
+    // Write the file
+    fs.writeFileSync(handbookPath, fileData);
+
+    // Parse the PDF
+    const pdfData = await pdfParse(fileData);
+    const handbookContent = pdfData.text;
 
     // Process the handbook into sections
-    handbookSections = splitIntoSections(handbookContent);
+    const handbookSections = splitIntoSections(handbookContent);
 
     return {
       statusCode: 200,
@@ -56,20 +72,23 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         message: 'Handbook uploaded successfully',
-        contentLength: handbookContent.length,
         sections: handbookSections.length,
+        fileSize: fileData.length,
         sectionTitles: handbookSections.map(s => s.title)
       })
     };
   } catch (error) {
-    console.error('Error processing handbook:', error);
+    console.error('Error uploading handbook:', error);
     return {
       statusCode: 500,
       headers: {
         'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
-      body: JSON.stringify({ error: 'Error processing handbook: ' + error.message })
+      body: JSON.stringify({ 
+        error: 'Failed to upload handbook',
+        details: error.message 
+      })
     };
   }
 };
