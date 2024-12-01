@@ -3,9 +3,10 @@ const pdfParse = require('pdf-parse');
 const fs = require('fs');
 const path = require('path');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Conditionally initialize OpenAI only if API key is present
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) 
+  : null;
 
 function splitIntoSections(text) {
   const sections = [];
@@ -33,16 +34,56 @@ function splitIntoSections(text) {
 }
 
 exports.handler = async (event, context) => {
+  // Handle CORS preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: ''
+    };
+  }
+
+  // Only allow POST method
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+      },
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
     // Parse the multipart form data
-    const data = JSON.parse(event.body);
+    let data;
+    try {
+      data = JSON.parse(event.body);
+    } catch (parseError) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        },
+        body: JSON.stringify({ error: 'Invalid request body', details: parseError.message })
+      };
+    }
+
+    // Validate file data
+    if (!data.file) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        },
+        body: JSON.stringify({ error: 'No file provided' })
+      };
+    }
+
     const fileData = Buffer.from(data.file, 'base64');
     
     // Save the file to public directory

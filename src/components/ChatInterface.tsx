@@ -105,39 +105,46 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('handbook', file);
+    // Read file as base64
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      const base64File = reader.result as string;
+      
+      setIsLoading(true);
+      setError(null);
 
-    setIsLoading(true);
-    setError(null);
+      try {
+        const response = await axios.post('/.netlify/functions/upload-handbook', {
+          file: base64File.split(',')[1], // Remove data URL prefix
+          mimeType: file.type
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-    try {
-      const response = await axios.post('/.netlify/functions/upload-handbook', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+        // Clear chat history and show success message
+        setMessages([{
+          id: Date.now(),
+          text: `Handbook uploaded successfully! Processed ${response.data.sections} sections.`,
+          isUser: false,
+          timestamp: new Date(),
+          sections: response.data.sectionTitles
+        }]);
 
-      // Clear chat history and show success message
-      setMessages([{
-        id: Date.now(),
-        text: `Handbook uploaded successfully! Processed ${response.data.sections} sections.`,
-        isUser: false,
-        timestamp: new Date(),
-        sections: response.data.sectionTitles
-      }]);
+        // Reset file input and update status
+        event.target.value = '';
+        await checkHandbookStatus();
+        onHandbookUploaded?.();
 
-      // Reset file input and update status
-      event.target.value = '';
-      await checkHandbookStatus();
-      onHandbookUploaded?.();
-
-    } catch (error) {
-      console.error('Error uploading handbook:', error);
-      setError('Failed to upload handbook. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+      } catch (error) {
+        console.error('Error uploading handbook:', error);
+        setError('Failed to upload handbook. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
   };
 
   const handleFeedback = (index: number, feedback: 'helpful' | 'not_helpful') => {
