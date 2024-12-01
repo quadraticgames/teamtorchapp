@@ -3,10 +3,10 @@ const pdfParse = require('pdf-parse');
 const fs = require('fs');
 const path = require('path');
 
-// Conditionally initialize OpenAI only if API key is present
-const openai = process.env.OPENAI_API_KEY 
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) 
-  : null;
+// Remove OpenAI initialization for now
+// const openai = process.env.OPENAI_API_KEY 
+//   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) 
+//   : null;
 
 function splitIntoSections(text) {
   const sections = [];
@@ -34,12 +34,15 @@ function splitIntoSections(text) {
 }
 
 exports.handler = async (event, context) => {
+  // Log the entire event for debugging
+  console.log('Full event object:', JSON.stringify(event, null, 2));
+
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
@@ -52,24 +55,32 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 405,
       headers: {
-        'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
+    // Log the request body for debugging
+    console.log('Request body:', event.body);
+
     // Parse the multipart form data
     let data;
     try {
       data = JSON.parse(event.body);
     } catch (parseError) {
+      console.error('JSON parse error:', parseError);
       return {
         statusCode: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+          'Access-Control-Allow-Origin': '*',
         },
-        body: JSON.stringify({ error: 'Invalid request body', details: parseError.message })
+        body: JSON.stringify({ 
+          error: 'Invalid request body', 
+          details: parseError.message,
+          rawBody: event.body 
+        })
       };
     }
 
@@ -78,7 +89,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+          'Access-Control-Allow-Origin': '*',
         },
         body: JSON.stringify({ error: 'No file provided' })
       };
@@ -108,7 +119,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
       body: JSON.stringify({
@@ -123,7 +134,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers: {
-        'Access-Control-Allow-Origin': 'https://teamtorchapp.netlify.app',
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
       body: JSON.stringify({ 

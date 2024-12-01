@@ -115,6 +115,13 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
       setError(null);
 
       try {
+        console.log('Uploading file:', {
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          base64Length: base64File.length
+        });
+
         const response = await axios.post('/.netlify/functions/upload-handbook', {
           file: base64File.split(',')[1], // Remove data URL prefix
           mimeType: file.type
@@ -122,7 +129,12 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
           headers: {
             'Content-Type': 'application/json',
           },
+          validateStatus: function (status) {
+            return status >= 200 && status < 300; // Default
+          }
         });
+
+        console.log('Upload response:', response.data);
 
         // Clear chat history and show success message
         setMessages([{
@@ -139,8 +151,12 @@ export const ChatInterface: React.FC<Props> = ({ isAdmin, onHandbookUploaded }) 
         onHandbookUploaded?.();
 
       } catch (error) {
-        console.error('Error uploading handbook:', error);
-        setError('Failed to upload handbook. Please try again.');
+        console.error('Full error object:', error);
+        console.error('Error uploading handbook:', error.response ? error.response.data : error.message);
+        setError(error.response ? 
+          `Failed to upload handbook: ${JSON.stringify(error.response.data)}` : 
+          'Failed to upload handbook. Please try again.'
+        );
       } finally {
         setIsLoading(false);
       }

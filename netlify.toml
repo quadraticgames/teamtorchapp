@@ -20,3 +20,7 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
+
+# Enable verbose logging for functions
+[context.production.environment]
+  NPM_FLAGS = "--loglevel verbose"
